@@ -11,6 +11,7 @@ on:
       - 'scripts/generate-flatpakrepo.sh'
       - '.github/workflows/publish-pages.yml'
       - 'README.md'
+      - 'site/index.html'
   workflow_dispatch:
 
 env:
@@ -33,6 +34,7 @@ jobs:
           rm -rf public
           mkdir -p public
           cp -R repo public/repo
+          cp site/index.html public/index.html
           ./scripts/generate-flatpakrepo.sh
 
       - name: Publish to gh-pages branch
