@@ -1,0 +1,7 @@
+[Flatpak Repo]
+Title=mgl-xyz Flathub Remote
+Url=https://mgl-xyz.github.io/flathub/repo/
+Homepage=https://mgl-xyz.github.io/flathub
+Comment=Shared Flatpak remote for mgl-xyz applications
+Description=Hosted Flatpak remote for Cursor and Trae packages maintained in mgl-xyz.
+GPGVerify=false
