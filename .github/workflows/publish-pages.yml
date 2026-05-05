@@ -18,6 +18,7 @@ env:
   FLATPAK_REMOTE_BASE_URL: https://mgl-xyz.github.io/flathub
   FLATPAK_REMOTE_NAME: flathub
   FLATPAK_REMOTE_TITLE: mgl-xyz Flathub Remote
+  FLATPAK_REMOTE_GPG_KEY_B64: ${{ secrets.FLATPAK_REMOTE_GPG_KEY_B64 }}
 
 jobs:
   publish:
