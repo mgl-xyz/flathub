@@ -5,6 +5,7 @@ remote_name="${FLATPAK_REMOTE_NAME:-flathub}"
 remote_title="${FLATPAK_REMOTE_TITLE:-mgl-xyz Flathub Remote}"
 base_url="${FLATPAK_REMOTE_BASE_URL:?FLATPAK_REMOTE_BASE_URL must be set}"
 output_dir="${OUTPUT_DIR:-public}"
+gpg_key_b64="${FLATPAK_REMOTE_GPG_KEY_B64:?FLATPAK_REMOTE_GPG_KEY_B64 must be set to the base64-encoded ASCII-armored public key}"
 
 mkdir -p "${output_dir}"
 
@@ -15,7 +16,8 @@ Url=${base_url}/repo/
 Homepage=${base_url}
 Comment=Shared Flatpak remote for mgl-xyz applications
 Description=Hosted Flatpak remote for Cursor and Trae packages maintained in mgl-xyz.
-GPGVerify=false
+GPGVerify=true
+GPGKey=${gpg_key_b64}
 EOT
 
 if [[ "${remote_name}" != "flathub" ]]; then
