@@ -29,18 +29,33 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Install Flatpak tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak
+
       - name: Prepare Pages payload
         env:
           FLATPAK_REMOTE_GPG_KEY_FILE: /tmp/remote-public.asc
+          FLATPAK_REMOTE_PUBLIC_KEY_ASC: ${{ secrets.FLATPAK_REMOTE_PUBLIC_KEY_ASC }}
+          FLATPAK_SIGN_PRIVATE_KEY_ASC: ${{ secrets.FLATPAK_SIGN_PRIVATE_KEY_ASC }}
         run: |
-          printf '%s' "${{ secrets.FLATPAK_REMOTE_PUBLIC_KEY_ASC }}" > /tmp/remote-public.asc
+          if [[ -n "${FLATPAK_SIGN_PRIVATE_KEY_ASC}" ]]; then
+            export GNUPGHOME="$(mktemp -d)"
+            chmod 700 "${GNUPGHOME}"
+            printf '%s' "${FLATPAK_SIGN_PRIVATE_KEY_ASC}" | gpg --batch --import
+            gpg --batch --armor --export > /tmp/remote-public.asc
+            rm -rf "${GNUPGHOME}"
+          else
+            printf '%s' "${FLATPAK_REMOTE_PUBLIC_KEY_ASC}" > /tmp/remote-public.asc
+          fi
           rm -rf public
           mkdir -p public
           cp -R repo public/repo
           cp site/index.html public/index.html
           ./scripts/generate-flatpakrepo.sh
 
-      - name: Sign hosted repo summary
+      - name: Sign and update repo (OSTree-compatible)
         env:
           FLATPAK_SIGN_PRIVATE_KEY_ASC: ${{ secrets.FLATPAK_SIGN_PRIVATE_KEY_ASC }}
           FLATPAK_SIGN_PW: ${{ secrets.FLATPAK_SIGN_PW }}
@@ -63,13 +78,21 @@ jobs:
             exit 1
           fi
 
+          printf 'signing-probe' > /tmp/signing-probe.txt
           gpg --batch --yes \
             --pinentry-mode loopback \
             --passphrase "${FLATPAK_SIGN_PW}" \
             --local-user "${signing_fpr}" \
-            --output public/repo/summary.sig \
-            --detach-sign public/repo/summary
+            --output /tmp/signing-probe.sig \
+            --detach-sign /tmp/signing-probe.txt
 
+          flatpak build-update-repo public/repo \
+            --gpg-sign="${signing_fpr}" \
+            --gpg-homedir="${GNUPGHOME}" \
+            --generate-static-deltas \
+            --prune
+
+          rm -f /tmp/signing-probe.txt /tmp/signing-probe.sig
           rm -rf "${GNUPGHOME}"
 
       - name: Publish to gh-pages branch
