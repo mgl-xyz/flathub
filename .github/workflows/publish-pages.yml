@@ -50,7 +50,7 @@ jobs:
           cp site/index.html public/index.html
           ./scripts/generate-flatpakrepo.sh
 
-      - name: Sign hosted repo summary
+      - name: Sign and update repo (OSTree-compatible)
         env:
           FLATPAK_SIGN_PRIVATE_KEY_ASC: ${{ secrets.FLATPAK_SIGN_PRIVATE_KEY_ASC }}
           FLATPAK_SIGN_PW: ${{ secrets.FLATPAK_SIGN_PW }}
@@ -73,12 +73,11 @@ jobs:
             exit 1
           fi
 
-          gpg --batch --yes \
-            --pinentry-mode loopback \
-            --passphrase "${FLATPAK_SIGN_PW}" \
-            --local-user "${signing_fpr}" \
-            --output public/repo/summary.sig \
-            --detach-sign public/repo/summary
+          flatpak build-update-repo public/repo \
+            --gpg-sign="${signing_fpr}" \
+            --gpg-homedir="${GNUPGHOME}" \
+            --generate-static-deltas \
+            --prune
 
           gpg --batch --yes \
             --pinentry-mode loopback \
