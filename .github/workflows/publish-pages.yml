@@ -40,6 +40,38 @@ jobs:
           cp site/index.html public/index.html
           ./scripts/generate-flatpakrepo.sh
 
+      - name: Sign hosted repo summary
+        env:
+          FLATPAK_SIGN_PRIVATE_KEY_ASC: ${{ secrets.FLATPAK_SIGN_PRIVATE_KEY_ASC }}
+          FLATPAK_SIGN_PW: ${{ secrets.FLATPAK_SIGN_PW }}
+        run: |
+          if [[ -z "${FLATPAK_SIGN_PRIVATE_KEY_ASC}" || -z "${FLATPAK_SIGN_PW}" ]]; then
+            echo "Skipping summary signing because one or more signing secrets are missing."
+            exit 0
+          fi
+
+          export GNUPGHOME="$(mktemp -d)"
+          chmod 700 "${GNUPGHOME}"
+          printf '%s\n' 'pinentry-mode loopback' >> "${GNUPGHOME}/gpg.conf"
+          printf '%s\n' 'allow-loopback-pinentry' >> "${GNUPGHOME}/gpg-agent.conf"
+
+          printf '%s' "${FLATPAK_SIGN_PRIVATE_KEY_ASC}" | gpg --batch --import
+
+          signing_fpr="$(gpg --batch --with-colons --list-secret-keys | awk -F: '$1=="fpr" {print $10; exit}')"
+          if [[ -z "${signing_fpr}" ]]; then
+            echo "No secret key fingerprint found after importing FLATPAK_SIGN_PRIVATE_KEY_ASC." >&2
+            exit 1
+          fi
+
+          gpg --batch --yes \
+            --pinentry-mode loopback \
+            --passphrase "${FLATPAK_SIGN_PW}" \
+            --local-user "${signing_fpr}" \
+            --output public/repo/summary.sig \
+            --detach-sign public/repo/summary
+
+          rm -rf "${GNUPGHOME}"
+
       - name: Publish to gh-pages branch
         uses: peaceiris/actions-gh-pages@v4
         with:

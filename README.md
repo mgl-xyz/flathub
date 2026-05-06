@@ -135,8 +135,12 @@ To avoid `Can't pull from untrusted non-gpg verified remote`, the hosted remote 
 3. 确保发布任务使用匹配私钥对仓库元数据/提交签名（例如 `flatpak build-update-repo --gpg-sign=<KEY_ID> ...`）。
 4. 部署后让客户端使用生成的 `.flatpakrepo` 添加远程（该文件现已启用 `GPGVerify=true`）。
 
-For GitHub Actions automation, store the public key as repository secret `FLATPAK_REMOTE_GPG_KEY_B64`.
-GitHub Actions 自动化建议：把公钥保存为仓库 Secret `FLATPAK_REMOTE_GPG_KEY_B64`。
+For GitHub Actions automation, use these repository secrets:
+GitHub Actions 自动化建议：使用以下仓库 Secrets：
+
+- `FLATPAK_REMOTE_PUBLIC_KEY_ASC`: ASCII-armored public key content for `.flatpakrepo` generation.
+- `FLATPAK_SIGN_PRIVATE_KEY_ASC`: ASCII-armored private key content used to sign `repo/summary`.
+- `FLATPAK_SIGN_PW`: passphrase for the signing private key.
 
 Why Flathub "just works": most Flatpak installations already ship Flathub's trusted key and preconfigured remote, so users don't have to import a custom key manually.
 为什么 Flathub 官网看起来“自动就能用”：多数系统默认已内置 Flathub 的受信任公钥和远程配置，因此用户不需要手动导入自定义密钥。
