@@ -139,7 +139,7 @@ For GitHub Actions automation, use these repository secrets:
 GitHub Actions 自动化建议：使用以下仓库 Secrets：
 
 - `FLATPAK_REMOTE_PUBLIC_KEY_ASC`: ASCII-armored public key content for `.flatpakrepo` generation.
-- `FLATPAK_SIGN_PRIVATE_KEY_ASC`: ASCII-armored private key content used to sign `repo/summary`.
+- `FLATPAK_SIGN_PRIVATE_KEY_ASC`: ASCII-armored private key content used to sign `repo/summary` and `repo/summary.idx`.
 - `FLATPAK_SIGN_PW`: passphrase for the signing private key.
 
 Why Flathub "just works": most Flatpak installations already ship Flathub's trusted key and preconfigured remote, so users don't have to import a custom key manually.
