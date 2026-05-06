@@ -110,6 +110,7 @@ jobs:
             --generate-static-deltas \
             --prune
 
+          rm -f /tmp/signing-probe.txt /tmp/signing-probe.sig
           rm -rf "${GNUPGHOME}"
 
       - name: Publish to gh-pages branch
