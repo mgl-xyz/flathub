@@ -29,6 +29,11 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Install Flatpak tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak
+
       - name: Prepare Pages payload
         env:
           FLATPAK_REMOTE_GPG_KEY_FILE: /tmp/remote-public.asc
