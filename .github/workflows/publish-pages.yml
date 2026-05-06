@@ -107,8 +107,7 @@ jobs:
           flatpak build-update-repo public/repo \
             --gpg-sign="${signing_fpr}" \
             --gpg-homedir="${GNUPGHOME}" \
-            --generate-static-deltas \
-            --prune
+            --generate-static-deltas
 
           rm -f /tmp/signing-probe.txt /tmp/signing-probe.sig
           rm -rf "${GNUPGHOME}"
