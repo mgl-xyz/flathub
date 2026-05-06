@@ -29,18 +29,33 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Install Flatpak tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak
+
       - name: Prepare Pages payload
         env:
           FLATPAK_REMOTE_GPG_KEY_FILE: /tmp/remote-public.asc
+          FLATPAK_REMOTE_PUBLIC_KEY_ASC: ${{ secrets.FLATPAK_REMOTE_PUBLIC_KEY_ASC }}
+          FLATPAK_SIGN_PRIVATE_KEY_ASC: ${{ secrets.FLATPAK_SIGN_PRIVATE_KEY_ASC }}
         run: |
-          printf '%s' "${{ secrets.FLATPAK_REMOTE_PUBLIC_KEY_ASC }}" > /tmp/remote-public.asc
+          if [[ -n "${FLATPAK_SIGN_PRIVATE_KEY_ASC}" ]]; then
+            export GNUPGHOME="$(mktemp -d)"
+            chmod 700 "${GNUPGHOME}"
+            printf '%s' "${FLATPAK_SIGN_PRIVATE_KEY_ASC}" | gpg --batch --import
+            gpg --batch --armor --export > /tmp/remote-public.asc
+            rm -rf "${GNUPGHOME}"
+          else
+            printf '%s' "${FLATPAK_REMOTE_PUBLIC_KEY_ASC}" > /tmp/remote-public.asc
+          fi
           rm -rf public
           mkdir -p public
           cp -R repo public/repo
           cp site/index.html public/index.html
           ./scripts/generate-flatpakrepo.sh
 
-      - name: Sign hosted repo summary
+      - name: Sign and update repo (OSTree-compatible)
         env:
           FLATPAK_SIGN_PRIVATE_KEY_ASC: ${{ secrets.FLATPAK_SIGN_PRIVATE_KEY_ASC }}
           FLATPAK_SIGN_PW: ${{ secrets.FLATPAK_SIGN_PW }}
@@ -54,6 +69,7 @@ jobs:
           chmod 700 "${GNUPGHOME}"
           printf '%s\n' 'pinentry-mode loopback' >> "${GNUPGHOME}/gpg.conf"
           printf '%s\n' 'allow-loopback-pinentry' >> "${GNUPGHOME}/gpg-agent.conf"
+          printf '%s\n' 'allow-preset-passphrase' >> "${GNUPGHOME}/gpg-agent.conf"
 
           printf '%s' "${FLATPAK_SIGN_PRIVATE_KEY_ASC}" | gpg --batch --import
 
@@ -63,12 +79,36 @@ jobs:
             exit 1
           fi
 
-          gpg --batch --yes \
-            --pinentry-mode loopback \
-            --passphrase "${FLATPAK_SIGN_PW}" \
-            --local-user "${signing_fpr}" \
-            --output public/repo/summary.sig \
-            --detach-sign public/repo/summary
+          keygrip="$(gpg --batch --with-keygrip --list-secret-keys "${signing_fpr}" | awk '/Keygrip/ {print $3; exit}')"
+          if [[ -z "${keygrip}" ]]; then
+            echo "No keygrip found for signing key ${signing_fpr}." >&2
+            exit 1
+          fi
+
+          gpgconf --kill gpg-agent
+          gpgconf --launch gpg-agent
+
+          preset_cmd="$(command -v gpg-preset-passphrase || true)"
+          if [[ -z "${preset_cmd}" ]]; then
+            for candidate in /usr/lib/gnupg/gpg-preset-passphrase /usr/lib/gnupg2/gpg-preset-passphrase; do
+              if [[ -x "${candidate}" ]]; then
+                preset_cmd="${candidate}"
+                break
+              fi
+            done
+          fi
+          if [[ -z "${preset_cmd}" ]]; then
+            echo "gpg-preset-passphrase binary not found." >&2
+            exit 1
+          fi
+
+          "${preset_cmd}" --preset --passphrase "${FLATPAK_SIGN_PW}" "${keygrip}"
+
+          flatpak build-update-repo public/repo \
+            --gpg-sign="${signing_fpr}" \
+            --gpg-homedir="${GNUPGHOME}" \
+            --generate-static-deltas \
+            --prune
 
           rm -rf "${GNUPGHOME}"
 
