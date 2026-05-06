@@ -91,6 +91,7 @@ jobs:
             --output public/repo/summary.idx.sig \
             --detach-sign public/repo/summary.idx
 
+          rm -f /tmp/signing-probe.txt /tmp/signing-probe.sig
           rm -rf "${GNUPGHOME}"
 
       - name: Publish to gh-pages branch
