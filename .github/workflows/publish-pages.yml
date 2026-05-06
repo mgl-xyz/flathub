@@ -84,6 +84,13 @@ jobs:
             --generate-static-deltas \
             --prune
 
+          gpg --batch --yes \
+            --pinentry-mode loopback \
+            --passphrase "${FLATPAK_SIGN_PW}" \
+            --local-user "${signing_fpr}" \
+            --output public/repo/summary.idx.sig \
+            --detach-sign public/repo/summary.idx
+
           rm -rf "${GNUPGHOME}"
 
       - name: Publish to gh-pages branch
